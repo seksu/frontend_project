@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Manage</title>
+
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="font/glyphicons-halflings-regular.ttf">
+  <link rel="stylesheet" href="css/manage.css">
+
+</head>
+
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+<div ng-app="myApp" ng-controller="myCtrl">
+  <!--Navber-->
+  <nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="index.html">Face Dect</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li ng-show = "{{role}}=='1'"><a href="searchCompany.html">SearchByCompany</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="searchArea.html">SearchByArea</a></li>
+        <li ng-show = "{{role}}=='2'"><a href="search.html">Search</a></li>
+        <li><a href="live.html">LiveView</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="manage.html">CameraManagement</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="manageUser.html">UserManagement</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="manageCompany.html">CompanyManagement</a></li>
+        <li><a href="train.html">Train</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href=""> <span class="glyphicon glyphicon-user"></span> KMITL</a>
+          <ul class="dropdown-menu">
+            <li><a href="changepass.html">Setting</a></li>
+          </ul>
+        </li>
+
+        <li><a href="index.html"><span class="glyphicon glyphicon-log-out"></span> Log out</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Manage-->
+  <div class="container">
+    <h2>Manage your employee</h2>
+    <div class="dropdown" ng-show="{{role == '1'}}">
+      <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"> Select Company <span class="caret"></span></button>
+      <ul class="dropdown-menu" >
+        <div ng-repeat="company in companys">
+          <li>&emsp;<a ng-click="selectCompany(company.id)">{{company.name}}</a></li>
+        </div>
+      </ul>
+    </div>
+    <!-- Trigger the modal with a button -->
+    <button type="button" ng-show="{{role}}=='1'" class="btn btn-info btn-lg rowadd" data-toggle="modal" onclick="adduseradmin()">Add UserAdmin</button>
+    <button type="button" ng-hide="{{role}}=='3'" class="btn btn-info btn-lg rowadd" data-toggle="modal" onclick="addemployee()">Add Employee</button>
+    <br>
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" role="dialog">
+      <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4>Camera Details</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+
+          </div>
+
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="usr">Token:</label>
+              <input type="text" class="form-control" id="usr" value={{camera_token}}>
+            </div>
+            <div class="form-group">
+              <label for="usr">Camera Name:</label>
+              <input type="text" class="form-control" placeholder="max-32characters" id="usr">
+            </div>
+
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>active</th>
+            <th>E-mail</th>
+            <th>Firstname</th>
+            <th>Lastname</th>
+            <th>companny</th>
+            <th>upload</th>
+            <th>Manage</th>
+          </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="employee in employees">
+
+                <td>{{employee.role}}</td>
+                <td>{{employee.email}}</td>
+                <td>{{employee.first_name}}</td>
+                <td>{{employee.last_name}}</td>
+                <td>{{employee.company_name}}</td>
+                <td>{{upload(employee.facepath)}}</td>
+                <td><button ng-style=colors(employee.active) ng-click="inactive(employee.id)" data-target="#sure" type="button" data-toggle="modal" class="btn btn-danger">{{state(employee.active)}}</button>
+                    <button ng-click="delete(employee.id)" data-target="#sure" type="button" data-toggle="modal" class="btn btn-danger">Delete</button></td>
+
+            </tr>
+            <div id="sure" class="modal fade" role="dialog">
+              <div class="modal-dialog">
+                <!-- Modal content-->
+                <div class="modal-content">
+                  <div class="modal-body">
+                    <p>Are You Sure?</p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" ng-click="accept()" class="btn btn-default" data-dismiss="modal">Yes</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+</div>
+
+<script>
+  function getCookie(cname) {
+      name = cname + "=";
+      var decodedCookie = decodeURIComponent(document.cookie);
+      var ca = decodedCookie.split(';');
+      for(var i = 0; i <ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == ' ') {
+              c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+          }
+      }
+      return "";
+  }
+  var app = angular.module('myApp', [])
+	function generateToken(n) {
+	    var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	    var token = '';
+	    for(var i = 0; i < n; i++) {
+	        token += chars[Math.floor(Math.random() * chars.length)];
+	    }
+	    return token;
+	}
+  function adduseradmin(){
+    window.location.href = "register.html";
+  }
+
+  function addemployee(){
+    window.location.href = "addUser.html";
+  }
+
+  app.controller('myCtrl', function ($scope, $http) {
+      $scope.company = "Select Company";
+      $scope.cameraList = null;
+      companyID = null;
+      $scope.role = getCookie("role");
+      var token = 'Basic '+getCookie("auth");
+      $scope.config = {
+        headers: {
+          'Authorization' : token
+        }
+      };
+      if($scope.role == '1'){
+        $http.get("http://161.246.5.160:8000/company/",$scope.config)
+        .then(function(response) {
+            $scope.companys = response.data;
+        });
+      }
+      if(getCookie("company")){
+        companyID = getCookie("company");
+      }
+      $scope.data = {
+        'id': companyID
+      };
+      $scope.colors = function(data) {
+        console.log("in color");
+        if(data){
+          return {"background-color" : "#3cb371",
+                  "border" : "#3cb371"}
+        }
+        else{
+          return {"background-color" : "#6a5acd",
+                  "border" : "#6a5acd"}
+        }
+      }
+      $scope.state = function(data) {
+        if(data){
+          return "Active";
+        }
+        else{
+          return "Inactive";
+        }
+      }
+      $scope.upload = function(data) {
+        if(data){
+          return "Uploaded"
+        }
+        else{
+          return "Unupload"
+        }
+      }
+      $scope.selectCompany = function(data) {
+        document.cookie = "company=" + data;
+          $scope.data = {
+            'id': data
+          };
+          $http.post("http://161.246.5.160:8000/user/list/",$scope.data,$scope.config)
+          .then(function(response) {
+              $scope.employees = response.data;
+              console.log($scope.employees);
+          });
+      };
+
+      $http.post("http://161.246.5.160:8000/user/list/",$scope.data,$scope.config)
+      .then(function(response) {
+          $scope.employees = response.data;
+          console.log($scope.employees);
+      });
+
+      $scope.inactiveID;
+      $scope.deleteID;
+      $scope.inactive = function(data) {
+        $scope.inactiveID = data;
+        console.log($scope.inactiveID);
+      }
+      $scope.delete = function(data) {
+        console.log(data);
+        $scope.deleteID = data;
+      }
+      $scope.accept = function() {
+        //console.log(document.getElementById("deleteID").value)
+        if($scope.inactiveID){
+            console.log("accept : " + $scope.inactiveID);
+            pass = getCookie("password");
+            $scope.data = {
+              "user_pk": $scope.inactiveID,
+              "password": pass
+            };
+            console.log("data to post : ");
+            console.log($scope.data)
+            $http.post("http://161.246.5.160:8000/user/inactive/", $scope.data , $scope.config)
+            .then(function(response) {
+              console.log("response from server : ");
+              console.log(response);
+              serverResult = response;
+              //$scope.resCamera = response;
+              window.location.href = "manageUser.html";
+            });
+        }
+        else if($scope.deleteID){
+            console.log("accept : " + $scope.deleteID);
+            pass = getCookie("password");
+            $scope.data = {
+              "user_pk": $scope.deleteID,
+              "password": pass
+            };
+            console.log("data to post : ");
+            console.log($scope.data)
+            $http.post("http://161.246.5.160:8000/user/delete/", $scope.data , $scope.config)
+            .then(function(response) {
+              console.log("response from server : ");
+              console.log(response);
+              serverResult = response;
+              //$scope.resCamera = response;
+              window.location.href = "manageUser.html";
+            });
+        }
+      }
+
+  });
+
+</script>
+
+
+</body>
+
+<script src="js/jquery-3.2.1.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+
+</html>

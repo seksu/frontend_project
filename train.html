@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>train</title>
+
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/login.css">
+  <!-- <link rel="stylesheet" href="font/glyphicons-halflings-regular.ttf"> -->
+  <link rel="stylesheet" href="css/notation.css">
+</head>
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.32/angular.min.js"></script>
+
+<script type="text/javascript" src="javascript/webcam.min.js"></script>
+
+
+    <div ng-app="myapp" ng-controller="mainController">
+      <nav class="navbar navbar-inverse">
+          <div class="container-fluid">
+            <div class="navbar-header">
+              <a class="navbar-brand" href="index.html">Face Dect</a>
+            </div>
+            <ul class="nav navbar-nav">
+              <li ng-show = "{{role}}=='1'"><a href="searchCompany.html">SearchByCompany</a></li>
+              <li ng-show = "{{role}}=='1'"><a href="searchArea.html">SearchByArea</a></li>
+              <li ng-show = "{{role}}=='2'"><a href="search.html">Search</a></li>
+              <li><a href="live.html">LiveView</a></li>
+              <li ng-hide = "{{role}}=='3'"><a href="manage.html">CameraManagement</a></li>
+              <li ng-hide = "{{role}}=='3'"><a href="manageUser.html">UserManagement</a></li>
+              <li ng-show = "{{role}}=='1'"><a href="manageCompany.html">CompanyManagement</a></li>
+              <li><a href="train.html">Train</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+              <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="changepass.html"> <span class="glyphicon glyphicon-user"></span> KMITL</a>
+                <ul class="dropdown-menu">
+                  <li><a href="changepass.html">Setting</a></li>
+                </ul>
+              </li>
+
+              <li><a href="index.html"><span class="glyphicon glyphicon-log-out"></span> Log out</a></li>
+            </ul>
+          </div>
+        </nav>
+        <div class="alert alert-error ng-scope" ng-show="webcamError" style="">
+    		<span>Webcam could not be started. Did you give access to it?</span>
+    	</div>
+    	<h1>My WebCam</h1>
+        <webcam channel="channel"
+            on-streaming="onSuccess()"
+            on-error="onError(err)"
+            on-stream="onStream(stream)">
+        </webcam>
+        <button ng-click="startTraining()">start train</button>
+        <button ng-click="stopTraining()">stop train</button>
+        <br>
+        <h3>{{doing}}</h3>
+        <canvas id="snapshot" width="300" height="300"></canvas>
+    </div>
+
+
+<script>
+  function getCookie(cname) {
+      name = cname + "=";
+      var decodedCookie = decodeURIComponent(document.cookie);
+      var ca = decodedCookie.split(';');
+      for(var i = 0; i <ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == ' ') {
+              c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+          }
+      }
+      return "";
+  }
+	angular.module('myapp', ['webcam'])
+	.controller('mainController', function($scope, $http) {
+      $scope.role = getCookie("role");
+      console.log($scope.role);
+	    var _video 		= null,
+	        patData 	= null,
+	        training 	= false,
+	        numFrame	= 0;
+
+	    $scope.patOpts = {x: 0, y: 0, w: 25, h: 25};
+
+	    $scope.channel = {};
+
+	    $scope.webcamError = false;
+	    $scope.onError = function (err) {
+	        $scope.$apply(
+	            function() {
+	                $scope.webcamError = err;
+	            }
+	        );
+	    };
+
+	    $scope.onSuccess = function () {
+	        _video = $scope.channel.video;
+	        $scope.$apply(function() {
+	            $scope.patOpts.w = _video.width;
+	            $scope.patOpts.h = _video.height;
+	        });
+	    };
+
+	    $scope.onStream = function (stream) {
+	    };
+
+	    $scope.stopTraining = function(){
+	    	clearInterval(intervalTraining);
+	    }
+
+		$scope.startTraining = function() {
+			$scope.doing = "training...";
+			training = true;
+			intervalTraining = setInterval(function(){
+		        if (_video) {
+		            var patCanvas = document.querySelector('#snapshot');
+		            if (!patCanvas) return;
+
+		            patCanvas.width = _video.width;
+		            patCanvas.height = _video.height;
+		            var ctxPat = patCanvas.getContext('2d');
+
+		            var idata = getVideoData($scope.patOpts.x, $scope.patOpts.y, $scope.patOpts.w, $scope.patOpts.h);
+		            ctxPat.putImageData(idata, 0, 0);
+
+		            sendSnapshotToServer(patCanvas.toDataURL());
+
+		            patData = idata;
+		        }
+			},300);
+	   };
+
+	    $scope.downloadSnapshot = function downloadSnapshot(dataURL) {
+	        window.location.href = dataURL;
+	    };
+
+	    var getVideoData = function getVideoData(x, y, w, h) {
+	        var hiddenCanvas = document.createElement('canvas');
+	        hiddenCanvas.width = _video.width;
+	        hiddenCanvas.height = _video.height;
+	        var ctx = hiddenCanvas.getContext('2d');
+	        ctx.drawImage(_video, 0, 0, _video.width, _video.height);
+	        return ctx.getImageData(x, y, w, h);
+	    };
+
+	    var sendSnapshotToServer = function sendSnapshotToServer(imgBase64) {
+	        $scope.snapshotData = imgBase64;
+	        console.log("pic : "+numFrame);
+	        //console.log(imgBase64);
+	        $scope.data = {
+	            "number": numFrame,
+	            "base64": imgBase64
+	        };
+	        $http.post("http://161.246.5.160:8000/user/upload_image/image/", $scope.data)
+	        .then(function(response) {
+				console.log(response);
+	        });
+	        numFrame += 1;
+	    };
+	});
+</script>
+</html>

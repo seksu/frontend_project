@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>search area</title>
+
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="font/glyphicons-halflings-regular.ttf">
+
+</head>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<body ng-app="myApp" ng-controller="myCtrl">
+
+  <!--Navber-->
+  <nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="index.html">Face Dect</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li ng-show = "{{role}}=='1'"><a href="searchCompany.html">SearchByCompany</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="searchArea.html">SearchByArea</a></li>
+        <li ng-show = "{{role}}=='2'"><a href="search.html">Search</a></li>
+        <li><a href="live.html">LiveView</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="manage.html">CameraManagement</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="manageUser.html">UserManagement</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="manageCompany.html">CompanyManagement</a></li>
+        <li><a href="train.html">Train</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href=""> <span class="glyphicon glyphicon-user"></span> KMITL</a>
+          <ul class="dropdown-menu">
+            <li><a href="changepass.html">Setting</a></li>
+          </ul>
+        </li>
+
+        <li><a href="index.html"><span class="glyphicon glyphicon-log-out"></span> Log out</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container">
+    <h2>Search Area</h2>
+    <div ng-app="myApp" ng-controller="myCtrl">
+        <br><input type="checkbox" id="searchShirtColor"> Check and select for search by shirt color :
+        <input type="color" id="myColor">
+        <br>
+        <br><input type="checkbox" id="searchDate"> Check and select for search by date :
+        <input type="date" id="myDate"> To <input type="date" id="myDateTo">
+        <br>
+        <div id="map" style="width:100%;height:500px"></div>
+        <br><button ng-click="search()">Search</button>
+        <br><br>
+    </div>
+  </div>
+</body>
+
+<script src="js/jquery-3.2.1.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+  var faceB64 = null;
+  var face    = null;
+  var color   = null;
+  var date    = null;
+  var floor   = null;
+  var toDate  = null;
+  var pos     = [];
+
+  localStorage.setItem("face" , null);
+  localStorage.setItem("color", null);
+  localStorage.setItem("date" , null);
+  localStorage.setItem("toDate" , null);
+  localStorage.setItem("floor", null);
+  localStorage.setItem("cam"  , null);
+  localStorage.setItem("pos"  , null);
+  localStorage.setItem("company" , null);
+
+  function getCookie(cname) {
+      name = cname + "=";
+      var decodedCookie = decodeURIComponent(document.cookie);
+      var ca = decodedCookie.split(';');
+      for(var i = 0; i <ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == ' ') {
+              c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+          }
+      }
+      return "";
+  }
+
+  var app = angular.module('myApp', []);
+  app.controller('myCtrl', function($scope, $http) {
+    $scope.role = getCookie("role");
+    var token = 'Basic '+getCookie("auth");
+    console.log(token);
+    $scope.config = {
+      headers: {
+        'Authorization' : token
+      }
+    };
+    $scope.data = {
+      'id': 1
+    };
+    $http.post("http://161.246.5.160:8000/camera/list/",$scope.data,$scope.config)
+    .then(function mySuccess(response) {
+        $scope.camera = response.data;
+        $scope.floors = [{
+          floor   : $scope.camera[0].floor,
+        }];
+        console.log($scope.camera);
+        $scope.GetValue = function () {
+            console.log($scope.floors);
+        }
+
+        for(var i = 0; i < $scope.camera.length; i++) {
+          var inFloor = true;
+          for(var j=0 ; j < $scope.floors.length ; j++) {
+            if($scope.camera[i].floor == $scope.floors[j].floor){
+              inFloor = false;
+            }
+          }
+          if(inFloor == true){
+            $scope.floors[$scope.floors.length] = $scope.camera[i].floor;
+          }
+        }
+
+        for (var i = 0; i < $scope.floors.length; i++) {
+            $scope.floors[i].checked = false;
+        }
+
+      }, function myError(response) {
+        console.log(response.statusText);
+    });
+    $scope.search = function() {
+        if(document.getElementById("searchShirtColor").checked){
+            color = document.getElementById("myColor").value;
+            color = color.replace('#','');
+            console.log(document.getElementById("myColor").value);
+            localStorage.setItem("color", color);
+        }
+        if(document.getElementById("searchDate").checked){
+            date = document.getElementById("myDate").value;
+            toDate = document.getElementById("myDateTo").value;
+            console.log(document.getElementById("myDate").value);
+            console.log(document.getElementById("myDateTo").value);
+            localStorage.setItem("date", date);
+            localStorage.setItem("toDate", toDate);
+        }
+        if(pos.length){
+            localStorage.setItem("pos", [pos[0],pos[1]]);
+            window.location.href = "resultOnMap.html";
+            console.log("pass");
+        }
+        else{
+          alert("Please choose area on the map");
+        }
+    }
+  });
+
+
+  function previewFile(){
+     var preview = document.querySelector('img');
+     var file    = document.querySelector('input[type=file]').files[0];
+     var reader  = new FileReader();
+
+     reader.onloadend = function () {
+          preview.src = reader.result;
+          console.log("read = "+reader.result);
+          face = reader.result;
+          //localStorage.setItem("face" , face);
+     }
+
+     if (file) {
+          reader.readAsDataURL(file);
+     }
+     else {
+          preview.src = "";
+     }
+  }
+
+  function myMap() {
+    var mapCanvas = document.getElementById("map");
+    var myCenter= new google.maps.LatLng(13.729220506976542,100.7755931872814);
+    var mapOptions = {center: myCenter, zoom: 18};
+    var map = new google.maps.Map(mapCanvas, mapOptions);
+
+    google.maps.event.addListener(map, 'click', function(event) {
+      placeMarker(map, event.latLng);
+    });
+  }
+  markerCount = 0;
+
+  function placeMarker(map, location) {
+    console.log(location)
+    if(markerCount < 2){
+      if(markerCount == 0){
+        pos = [location];
+        var marker = new google.maps.Marker({
+          position : location,
+          map: map
+        });
+        console.log(pos);
+        //infowindow.open(map,marker);
+      }
+      else if(markerCount == 1){
+        var marker = new google.maps.Marker({
+          position : location,
+          map: map
+        });
+        pos[1] = location;
+        pos[2] = new google.maps.LatLng(pos[0].lat(),pos[1].lng());
+        pos[3] = new google.maps.LatLng(pos[1].lat(),pos[0].lng());
+
+        // var infowindow = new google.maps.InfoWindow({
+        //   content: 'Latitude: ' + location.lat() + '<br>Longitude: ' + location.lng()
+        // });
+        var flightPath = new google.maps.Polygon({
+          path:[pos[0],pos[2],pos[1],pos[3]],
+          strokeColor: "#0000FF",
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: "#0000FF",
+          fillOpacity: 0.4
+        });
+        flightPath.setMap(map);
+      }
+    }
+    markerCount++;
+  }
+
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTWnH_PbIriKzF18Xh2M-HpkSXhdh6TJo&callback=myMap"></script>
+</html>

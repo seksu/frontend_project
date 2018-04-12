@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>change password</title>
+
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="font/glyphicons-halflings-regular.ttf">
+
+</head>
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+<body ng-app="myApp" ng-controller="myCtrl">
+  <!--Navber-->
+  <nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="index.html">Face Dect</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li ng-show = "{{role}}=='1'"><a href="searchCompany.html">SearchByCompany</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="searchArea.html">SearchByArea</a></li>
+        <li ng-show = "{{role}}=='2'"><a href="search.html">Search</a></li>
+        <li><a href="live.html">LiveView</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="manage.html">CameraManagement</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="manageUser.html">UserManagement</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="manageCompany.html">CompanyManagement</a></li>
+        <li><a href="train.html">Train</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href=""> <span class="glyphicon glyphicon-user"></span> KMITL</a>
+          <ul class="dropdown-menu">
+            <li><a href="changepass.html">Setting</a></li>
+          </ul>
+        </li>
+        <li><a href="index.html"><span class="glyphicon glyphicon-log-out"></span> Log out</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container panel-login changepassbox">
+    <h2>Change Password</h2>
+    <form>
+      <div class="form-input topmar">
+        <input type="password" class="form-control" ng-model="old_password" placeholder="Old Password">
+      </div>
+      <div class="form-input topmar">
+        <input type="password" class="form-control" ng-model="new_password" placeholder="New Password">
+      </div>
+      <div class="form-input">
+        <input type="password" class="form-control" ng-model="renew_password" placeholder="Re-new Password">
+      </div>
+    </form>
+    <button type="button" class="btn btn-default" ng-click="changepass()">Submit</button>
+  </div>
+
+  <div class="container panel-login changepassbox">
+    <h2>Change Name</h2>
+    <form>
+      <div class="form-input topmar">
+        <input type="text" class="form-control" ng-model="first_name" placeholder="First Name">
+      </div>
+      <div class="form-input">
+        <input type="text" class="form-control" ng-model="last_name" placeholder="Last Name">
+      </div>
+    </form>
+    <button type="button" class="btn btn-default" ng-click="changename()">Submit</button>
+  </div>
+
+</body>
+
+<script src="js/jquery-3.2.1.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+
+<script>
+  function getCookie(cname) {
+      name = cname + "=";
+      var decodedCookie = decodeURIComponent(document.cookie);
+      var ca = decodedCookie.split(';');
+      for(var i = 0; i <ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == ' ') {
+              c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+          }
+      }
+      return "";
+  }
+  var app = angular.module('myApp', []);
+	app.controller('myCtrl', function($scope, $http) {
+    $scope.role = getCookie("role");
+    console.log($scope.role);
+    var token = 'Basic '+getCookie("auth");
+    $scope.config = {
+      headers: {
+        'Authorization' : token
+      }
+    };
+    $scope.changepass = function() {
+      console.log("changepass");
+      if($scope.new_password == $scope.renew_password){
+        $scope.data = {
+            "old_password": $scope.old_password,
+            "new_password": $scope.new_password
+        };
+        $http.post("http://161.246.5.160:8000/user/change-password/",$scope.data,$scope.config)
+        .then(function(response) {
+            console.log(response);
+            window.location.href = "index.html";
+        });
+      }
+      else{
+        alert("Password not match");
+      }
+    }
+    $scope.changename = function() {
+      console.log("changename");
+      $scope.data = {
+          "last_name": $scope.last_name,
+          "first_name": $scope.first_name
+      };
+      $http.post("http://161.246.5.160:8000/user/change-name/",$scope.data,$scope.config)
+      .then(function(response) {
+          console.log(response);
+          window.location.href = "index.html";
+      });
+    }
+  });
+</script>
+</html>

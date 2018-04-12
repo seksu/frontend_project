@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+<head>
+  <meta charset="utf-8">
+  <title>Result More</title>
+
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/login.css">
+  <link rel="stylesheet" href="/font/glyphicons-halflings-regular.ttf">
+
+</head>
+
+<body ng-app="myApp" ng-controller="myCtrl">
+	<nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/index.html">Face Dect</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li ng-show = "{{role}}=='1'"><a href="/searchCompany.html">SearchByCompany</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="/searchArea.html">SearchByArea</a></li>
+        <li ng-show = "{{role}}=='2'"><a href="/search.html">Search</a></li>
+        <li><a href="/live.html">LiveView</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="/manage.html">CameraManagement</a></li>
+        <li ng-hide = "{{role}}=='3'"><a href="/manageUser.html">UserManagement</a></li>
+        <li ng-show = "{{role}}=='1'"><a href="/manageCompany.html">CompanyManagement</a></li>
+        <li><a href="/train.html">Train</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="/changepass.html"> <span class="glyphicon glyphicon-user"></span> KMITL</a>
+          <ul class="dropdown-menu">
+            <li><a href="/changepass.html">Setting</a></li>
+          </ul>
+        </li>
+
+        <li><a href="/index.html"><span class="glyphicon glyphicon-log-out"></span> Log out</a></li>
+      </ul>
+    </div>
+  </nav>
+	<div style="margin-left:30px">
+		<h1 >More Result</h1>
+		<div ng-repeat="list in informationList">&emsp;
+			<br><a>At : {{list.timestamp}}</a>
+			<br><a>File Name : {{list.video_path}}</a>
+			<a href={{list.download}}> download</a>
+			<br>
+		</div>
+	</div>
+
+	<br>
+	&emsp;&emsp;<button value="prev" onclick="prev()">Prev</button>
+	&emsp;<button value="next" onclick="next()">Next</button>
+</body>
+
+<script>
+	var percent_color = 10;
+	var serverResult = null;
+	searchParams = new URLSearchParams(location.search);
+	console.log("token_param : " + searchParams.get('camera_token'));
+	var camera_token = searchParams.get('camera_token');
+	console.log("stage : "+searchParams.get('stage'));
+	var stage = searchParams.get('stage');
+	var app = angular.module('myApp', [])
+	function getCookie(cname) {
+			name = cname + "=";
+			var decodedCookie = decodeURIComponent(document.cookie);
+			var ca = decodedCookie.split(';');
+			for(var i = 0; i <ca.length; i++) {
+					var c = ca[i];
+					while (c.charAt(0) == ' ') {
+							c = c.substring(1);
+					}
+					if (c.indexOf(name) == 0) {
+							return c.substring(name.length, c.length);
+					}
+			}
+			return "";
+	}
+	function normalize(data){
+		if(data > 255 || data < 0){
+			if(data > 255){
+				return 255;
+			}
+			else if(data < 0){
+				return 0;
+			}
+		}
+		else{
+			return data;
+		}
+	}
+	function checkNull(value){
+			if(value == "null"){
+				return null;
+			}
+			else{
+				return value;
+			}
+	}
+
+	function checkNan(value){
+			if(isNaN(value)){
+				return null;
+			}
+			else{
+				return value;
+			}
+	}
+
+	face 			= checkNull(localStorage.getItem("face"));
+	red_min 	= checkNan(normalize(Math.floor(parseInt(localStorage.getItem("color").slice(0, 2),16)*(100-percent_color)/100)));
+	red_max		= checkNan(normalize(Math.floor(parseInt(localStorage.getItem("color").slice(0, 2),16)*(100+percent_color)/100)));
+	green_min	= checkNan(normalize(Math.floor(parseInt(localStorage.getItem("color").slice(2, 4),16)*(100-percent_color)/100)));
+	green_max	= checkNan(normalize(Math.floor(parseInt(localStorage.getItem("color").slice(2, 4),16)*(100+percent_color)/100)));
+	blue_min 	= checkNan(normalize(Math.floor(parseInt(localStorage.getItem("color").slice(4, 6),16)*(100-percent_color)/100)));
+	blue_max 	= checkNan(normalize(Math.floor(parseInt(localStorage.getItem("color").slice(4, 6),16)*(100+percent_color)/100)));
+	date  		= checkNull(localStorage.getItem("date"));
+	toDate    = checkNull(localStorage.getItem("toDate"));
+	floor	    = checkNull(localStorage.getItem("floor"));
+	var temp = localStorage.getItem("pos").replace('(', '');
+	temp = temp.replace(')', '');
+	temp = temp.replace('(', '');
+	temp = temp.replace(')', '');
+	temp = temp.replace(' ', '');
+	temp = temp.replace(' ', '');
+	temp = temp.split(",");
+	scompany = localStorage.getItem("company");
+
+	if(red_min && red_max && green_min && green_max && blue_min && blue_max){
+		red 	= [ red_min , red_max ];
+		green = [ green_min , green_max ];
+		blue 	= [ blue_min , blue_max ];
+	}
+	else{
+		red 	= [];
+		green = [];
+		blue 	= [];
+	}
+
+	if(date == null || toDate == null){
+		jdate = [];
+	}
+	else{
+		jdate = [date,toDate];
+	}
+
+	if(floor){
+		floor = [floor];
+	}
+	else{
+		floor = [];
+	}
+
+	function downloadPath(path){
+		temp = "/ipcam/"+path.slice(14,22)+"/"+path.slice(22,24)+"00/"+path.slice(6,32);
+		console.log("temp : "+temp);
+		return temp;
+	}
+
+	app.controller('myCtrl', function ($scope, $http) {
+		$scope.role = getCookie("role");
+		var token = 'Basic '+getCookie("auth");
+
+		$scope.config = {
+			headers: {
+				'Authorization' : token
+			}
+		};
+
+		if($scope.role == '1' && temp.length == 4){
+	    console.log("temp length : "+temp.length);
+	    pltTemp = [parseFloat(temp[0]),parseFloat(temp[1])];
+	    prbTemp = [parseFloat(temp[2]),parseFloat(temp[3])];
+	    $scope.data = {
+	        "red"           : red,
+	        "green"				  : green,
+	        "blue"				  : blue,
+	        "date"				  : jdate,
+	        "stage"				  : 1,
+	        "pos_left_top"  : pltTemp,
+	        "pos_right_bot" : prbTemp
+	    };
+	    console.log($scope.data);
+	    $http.post("http://161.246.5.160:8000/search/admins/", $scope.data , $scope.config)
+	    .then(function(response) {
+	      console.log("response from server : ");
+	      console.log(response);
+	      serverResult = response;
+	      $scope.resCamera = response;
+	      //listOfFileName(0,20);
+				$scope.informationList = [];
+	      if(serverResult.data.length == 0){
+	        console.log("No result");
+	        $scope.masg = "No Result";
+	      }
+				else{
+					for(var i=0 ; i<serverResult.data.length ; i++){
+						if(serverResult.data[i].token == camera_token){
+							if($scope.informationList.length == 0){
+								for(var j=0 ; j<serverResult.data[i].list_video.length ; j++){
+									$scope.timeTemp = serverResult.data[i].list_video[j].video_name;
+									$scope.newTime = $scope.timeTemp.slice(8,10)+':'+$scope.timeTemp.slice(10,12)+':'+$scope.timeTemp.slice(12,14)+' '+$scope.timeTemp.slice(6,8)+'/'+$scope.timeTemp.slice(4,6)+'/'+$scope.timeTemp.slice(0,4);
+									console.log($scope.newTime);
+									$scope.informationList[j] =
+									{	timestamp 	: $scope.newTime,
+										download 		: serverResult.data[i].list_video[j].video_path,
+										video_path 	: serverResult.data[i].list_video[j].video_name								};
+								}
+							}
+						}
+					}
+					console.log("end");
+					console.log($scope.informationList);
+				}
+	    });
+	  }
+	  else{
+	    if(scompany.length){
+	      $scope.data = {
+	          "pic_search"	: face,
+	          "red"					: red,
+	          "green"				: green,
+	          "blue"				: blue,
+	          "date"				: jdate,
+	          "floor"				: floor,
+	          "stage"				: 1,
+	          "company"     : scompany
+	      };
+	    }
+	    else{
+	      $scope.data = {
+	          "pic_search"	: face,
+	          "red"					: red,
+	          "green"				: green,
+	          "blue"				: blue,
+	          "date"				: jdate,
+	          "floor"				: floor,
+	          "stage"				: 1,
+	          "company"     : null
+	      };
+	    }
+	    console.log($scope.data);
+	    $http.post("http://161.246.5.160:8000/search/", $scope.data , $scope.config)
+	    .then(function(response) {
+	      console.log("response from server : ");
+	      console.log(response);
+	      serverResult = response;
+	      $scope.resCamera = response;
+	      //listOfFileName(0,20);
+				$scope.informationList = [];
+	      if(serverResult.data.length == 0){
+	        console.log("No result");
+	        $scope.masg = "No Result";
+	      }
+				else{
+					for(var i=0 ; i<serverResult.data.length ; i++){
+						if(serverResult.data[i].token == camera_token){
+							if($scope.informationList.length == 0){
+								for(var j=0 ; j<serverResult.data[i].list_video.length ; j++){
+									$scope.timeTemp = serverResult.data[i].list_video[j].video_name;
+									$scope.newTime = $scope.timeTemp.slice(8,10)+':'+$scope.timeTemp.slice(10,12)+':'+$scope.timeTemp.slice(12,14)+' '+$scope.timeTemp.slice(6,8)+'/'+$scope.timeTemp.slice(4,6)+'/'+$scope.timeTemp.slice(0,4);
+									console.log($scope.newTime);
+									$scope.informationList[j] =
+									{	timestamp 	: $scope.newTime,
+										download 		: serverResult.data[i].list_video[j].video_path,
+										video_path 	: serverResult.data[i].list_video[j].video_name								};
+								}
+							}
+						}
+					}
+					console.log("end");
+					console.log($scope.informationList);
+				}
+	    });
+	  }
+	});
+	function next(){
+		if(serverResult.data.length >= 3){
+			console.log("http://161.246.5.152/resultMore.html/?camera_token="+camera_token+"&?stage="+(parseInt(stage)+1));
+			window.location.href = "http://161.246.5.152/resultMore.html/?camera_token="+camera_token+"&stage="+(parseInt(stage)+1);
+		}
+	}
+	function prev(){
+		if(stage > 1){
+			window.location.href = "http://161.246.5.152/resultMore.html/?camera_token="+camera_token+"&stage="+(parseInt(stage)-1);
+		}
+	}
+</script>
+
+</body>
+</html>
